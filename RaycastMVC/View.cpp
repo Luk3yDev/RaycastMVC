@@ -3,9 +3,10 @@
 #include <iostream>
 
 #include "Model.h"
+#include "Controller.h"
 
 #define screenWidth 640
-#define screenHeight 640
+#define screenHeight 480
 
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
@@ -17,6 +18,7 @@ uint32_t* pixels = nullptr;
 
 Player& player = getPlayer();
 auto& level = getLevel();
+Movement& movement = getMovement();
 
 int pitch = 0;
 
@@ -108,9 +110,9 @@ void draw()
         std::cerr << "SDL_LockTexture failed: " << SDL_GetError() << std::endl;
     }
 
-    // Clear screen
+    // Clear screen and do floor
     for (int i = 0; i < screenWidth * screenHeight; ++i) {
-        pixels[i] = SDL_MapRGB(format, 0, 0, 0); // Set each pixel to black
+        pixels[i] = SDL_MapRGB(format, 0, 0, 0);
     }
 
     // Raycast
@@ -226,4 +228,77 @@ void draw()
 
     SDL_RenderCopy(renderer, frameBuffer, nullptr, nullptr);
     SDL_RenderPresent(renderer);
+}
+
+int main(int argc, char* args[])
+{
+    initView();
+
+    static bool done = false;
+    Uint64 NOW = SDL_GetPerformanceCounter();
+    Uint64 LAST = 0;
+    double deltaTime = 0;
+    SDL_Event event;
+
+    while (!done);
+    {
+        // std::cout << "Player at (" << player.posX << ", " << player.posY << ")\n"; // Debug player pos
+        LAST = NOW;
+        NOW = SDL_GetPerformanceCounter();
+        deltaTime = ((NOW - LAST) * 3 / (double)SDL_GetPerformanceFrequency());
+
+        // Input
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_KEYDOWN)
+            {
+                /* Check the SDLKey values and move change the coords */
+                switch (event.key.keysym.sym) {
+                case SDLK_LEFT:
+                    movement = turningLeft;
+                    break;
+                case SDLK_RIGHT:
+                    movement = turningRight;
+                    break;
+                case SDLK_UP:
+                    movement = forward;
+                    break;
+                case SDLK_DOWN:
+                    movement = backward;
+                    break;
+                case SDLK_ESCAPE:
+                    done = true;
+                    break;
+                default:
+                    break;
+                }
+            }
+            if (event.type == SDL_KEYUP)
+            {
+                /* Check the SDLKey values and move change the coords */
+                switch (event.key.keysym.sym) {
+                case SDLK_LEFT:
+                    movement = none;
+                    break;
+                case SDLK_RIGHT:
+                    movement = none;
+                    break;
+                case SDLK_UP:
+                    movement = none;
+                    break;
+                case SDLK_DOWN:
+                    movement = none;
+                    break;
+                default:
+                    break;
+                }
+            }
+            if (event.type == SDL_QUIT) done = true;
+        }
+
+        control(deltaTime);
+        draw();
+    }
+
+    SDL_Quit();
+    return 0;
 }
